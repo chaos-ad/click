@@ -139,6 +139,8 @@ Types
 
 .. autoclass:: FloatRange
 
+.. autoclass:: Date
+
 .. autoclass:: DateTime
 
 .. autoclass:: Tuple

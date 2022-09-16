@@ -1,6 +1,7 @@
 import os
 import stat
 import typing as t
+from datetime import date
 from datetime import datetime
 from gettext import gettext as _
 from gettext import ngettext
@@ -327,6 +328,72 @@ class Choice(ParamType):
             matched = (c for c in str_choices if c.lower().startswith(incomplete))
 
         return [CompletionItem(c) for c in matched]
+
+
+class Date(ParamType):
+    """The Date type converts date strings into `date` objects.
+
+    The format strings which are checked are configurable, but default to some
+    common formats.
+
+    When specifying *Date* formats, you should only pass a list or a tuple.
+    Other iterables, like generators, may lead to surprising results.
+
+    The format strings are processed using ``datetime.strptime``, and this
+    consequently defines the format strings which are allowed.
+
+    Parsing is tried using each format, in order, and the first format which
+    parses successfully is used.
+
+    :param formats: A list or tuple of date format strings, in the order in
+                    which they should be tried. Defaults to
+                    ``'%Y-%m-%d'``, ``'%Y%m%dT'``.
+    """
+
+    name = "date"
+
+    def __init__(self, formats: t.Optional[t.Sequence[str]] = None):
+        self.formats = formats or ["%Y-%m-%d", "%Y%m%d"]
+
+    def to_info_dict(self) -> t.Dict[str, t.Any]:
+        info_dict = super().to_info_dict()
+        info_dict["formats"] = self.formats
+        return info_dict
+
+    def get_metavar(self, param: "Parameter") -> str:
+        return f"[{'|'.join(self.formats)}]"
+
+    def _try_to_convert_date(self, value: t.Any, format: str) -> t.Optional[date]:
+        try:
+            return datetime.strptime(value, format).date()
+        except ValueError:
+            return None
+
+    def convert(
+        self, value: t.Any, param: t.Optional["Parameter"], ctx: t.Optional["Context"]
+    ) -> t.Any:
+        if isinstance(value, date):
+            return value
+
+        for format in self.formats:
+            converted = self._try_to_convert_date(value, format)
+
+            if converted is not None:
+                return converted
+
+        formats_str = ", ".join(map(repr, self.formats))
+        self.fail(
+            ngettext(
+                "{value!r} does not match the format {format}.",
+                "{value!r} does not match the formats {formats}.",
+                len(self.formats),
+            ).format(value=value, format=formats_str, formats=formats_str),
+            param,
+            ctx,
+        )
+
+    def __repr__(self) -> str:
+        return "Date"
 
 
 class DateTime(ParamType):

@@ -402,6 +402,38 @@ def test_choice_argument(runner):
     result = runner.invoke(cli, ["--help"])
     assert "{foo|bar|baz}" in result.output
 
+def test_date_option_default(runner):
+    @click.command()
+    @click.option("--start_date", type=click.Date())
+    def cli(start_date):
+        click.echo(str(start_date))
+
+    result = runner.invoke(cli, ["--start_date=2015-09-29"])
+    assert not result.exception
+    assert result.output == "2015-09-29\n"
+
+    result = runner.invoke(cli, ["--start_date=20150929"])
+    assert not result.exception
+    assert result.output == "2015-09-29\n"
+
+    result = runner.invoke(cli, ["--start_date=2015-09-29T09:11:22"])
+    assert result.exit_code == 2
+    assert (
+        "Invalid value for '--start_date': '2015-09-29T09:11:22' does not match the formats"
+        " '%Y-%m-%d', '%Y%m%d'."
+    ) in result.output
+
+    result = runner.invoke(cli, ["--start_date=2015-09"])
+    assert result.exit_code == 2
+    assert (
+        "Invalid value for '--start_date': '2015-09' does not match the formats"
+        " '%Y-%m-%d', '%Y%m%d'."
+    ) in result.output
+
+    result = runner.invoke(cli, ["--help"])
+    assert (
+        "--start_date [%Y-%m-%d|%Y%m%d]" in result.output
+    )
 
 def test_datetime_option_default(runner):
     @click.command()
@@ -420,8 +452,7 @@ def test_datetime_option_default(runner):
     result = runner.invoke(cli, ["--start_date=2015-09"])
     assert result.exit_code == 2
     assert (
-        "Invalid value for '--start_date': '2015-09' does not match the formats"
-        " '%Y-%m-%d', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%d %H:%M:%S'."
+        "Invalid value for '--start_date': '2015-09' does not match the formats '%Y-%m-%d', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%d %H:%M:%S'."
     ) in result.output
 
     result = runner.invoke(cli, ["--help"])

@@ -71,6 +71,9 @@ different behavior and some are supported out of the box:
 .. autoclass:: FloatRange
   :noindex:
 
+.. autoclass:: Date
+   :noindex:
+
 .. autoclass:: DateTime
    :noindex:
 
